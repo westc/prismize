@@ -1,6 +1,6 @@
 # Prismize
 
-Easily use Prism.JS on any web page.
+Easily use [Prism.js](https://prismjs.com/) on any web page.
 
 ## Usage
 
