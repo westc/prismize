@@ -1,0 +1,22 @@
+{
+  "name": "prismize",
+  "version": "1.0.0",
+  "description": "Display code in HTML using Prism.js to do syntax highlighting.",
+  "main": "prismize.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/westc/prismize.git"
+  },
+  "keywords": [
+    "Prism.JS"
+  ],
+  "author": "Chris West",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/westc/prismize/issues"
+  },
+  "homepage": "https://github.com/westc/prismize#readme"
+}
