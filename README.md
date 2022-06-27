@@ -46,8 +46,9 @@ Options for specific prismized content can be set by including the correct `data
 
 Attribute | Type | Description
 --|--|--
-`data-copyable` | Boolean \| String | If this is a boolean value it indicates whether or not to show a copy to clipboard button in a toolbar to the top-right corner of the code block.  If this is a string the code block will appear with copy to clipboard button in the toolbar in the top-right with this string as the button's label.
-`data-keep-margins` | Boolean | Indicates whether or not to keep the margins that are ordinarily found before and/or after the main `<pre>` tag within the prismized content.
+`data-copyable` | Boolean \| String | If this is a boolean value it indicates whether or not to show a copy to clipboard button in a toolbar in the top-right corner of the code block.  If this is a string the code block will appear with a copy to clipboard button in the toolbar in the top-right with this string as the button's label.
+`data-downloadable` | Boolean \| String | If this is a boolean value it indicates whether or not to show a download button in a toolbar in the top-right corner of the code block.  If this is a string the code block will appear with a download button in the toolbar in the top-right with this string as the button's label.
+`data-downloadable` | String | The file name for the file that will be downloaded.
 `data-language` | String | Alternative to `data-language`.  Used to indicate the language to be used to highlight the syntax.
 `data-match-braces` | Boolean | Indicates whether to use the [match-braces plugin](https://prismjs.com/plugins/match-braces/).
 `data-max-height` | Integer | Indicates the maximum height of the containing element (IFRAME) of the syntax highlighted code.
@@ -55,6 +56,7 @@ Attribute | Type | Description
 `data-placement` | String | Indicates where to place the prismized syntax highlighted block.  Defaults to `"replace"`.  Valid values are as follows:<ul><li>`"start"` - Inserts as the first element of this `<pre>` tag.</li><li>`"end"` - Inserts as the last element of this `<pre>` tag.</li><li>`"before"` - Inserts as an element directly before this `<pre>` tag.</li><li>`"after"` - Inserts as an element directly after this `<pre>` tag.</li><li>`"replace"` - Replaces this `<pre>` tag.</li></ul>
 `data-preview-colors` | Boolean | Indicates whether to use the [inline-color plugin](https://prismjs.com/plugins/inline-color/).
 `data-prismize` | String | Used to indicate the language to be used to highlight the syntax.
+`data-remove-margins` | Boolean | Indicates whether or not to remove the margins that are ordinarily found before and/or after the main `<pre>` tag within the prismized content.
 `data-resize-rate` | Integer | Indicates how often (in milliseconds) to try to resize the containing element (IFRAME) based on the rendered syntax highlighted code's height.
 `data-show-language` | Boolean \| String | If this is a boolean it indicates whether to use the [show-language plugin](https://prismjs.com/plugins/show-language/).  If this is a string the [show-language plugin](https://prismjs.com/plugins/show-language/) will be used and the specified string will display as the language for this code block.
 `data-tab-size` | Integer | Indicates how many spaces a tab character should resolve to.

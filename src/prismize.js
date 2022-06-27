@@ -25,22 +25,51 @@ const {prismize, prismizeAll} = (function(document, undefined) {
 
   /**
    * @typedef {Object} PrismizeOptions
-   * @property {(boolean|number)=} numberLines
-   *   If specified as `true` or a number the lines will be numbered.  If
-   *   specified as a number that will be used as the first line number to show.
-   * @property {boolean=} matchBraces
-   *   If specified as `true` the match braces plugin will be enabled.
-   * @property {boolean=} keepMargins
-   *   If specified as `true` the margins for the main <pre> tag in the IFRAME
-   *   will be kept.  Default is `false`.
-   * @property {boolean=} showLanguage
-   *   If specified as `true` the language name will be shown in the toolbar.
-   * @property {boolean=} previewColors
-   *   If specified as `true` the language name will be shown in the toolbar.
+   * @property {string=} className
+   *   Class name to assign to the IFRAME.
    * @property {(boolean|string)=} copyable
    *   If specified as `true` the code will have a copy to clipboard button in the
    *   toolbar.  If specified as a string this will be the button text that will
    *   show in the toolbar.
+   * @property {string=} downloadName
+   *   The name of the file when it is downloaded via the download button.
+   * @property {(boolean|string)=} downloadable
+   *   If specified as `true` the code will have a download button in the
+   *   toolbar.  If specified as a string this will be the button text that will
+   *   show in the toolbar.
+   * @property {string=} id
+   *   The ID to assign to the IFRAME.
+   * @property {boolean=} removeMargins
+   *   If specified as `true` the margins for the main <pre> tag in the IFRAME
+   *   will be removed.  Default is `false`.
+   * @property {boolean=} matchBraces
+   *   If specified as `true` the match braces plugin will be enabled.
+   * @property {number=} maxHeight
+   *   Maximum height of the content.
+   * @property {(boolean|number)=} numberLines
+   *   If specified as `true` or a number the lines will be numbered.  If
+   *   specified as a number that will be used as the first line number to show.
+   * @property {((iframe: HTMLElement, options: PrismizeOptions) => void)=} onLoad
+   *   If specified this function will be called after the IFRAME is added to
+   *   the DOM.
+   * @property {((iframe: HTMLElement, options: PrismizeOptions) => void)=} onResize
+   *   If specified this function will be called whenever the contents of the
+   *   IFRAME have been resized.
+   * @property {HTMLElement=} placeholder
+   *   Element around where the IFRAME should be placed.  Defaults to
+   *   `document.body`.
+   * @property {("before"|"after"|"replace"|"end"|"start")=} placement
+   *   Where to place the IFRAME in relation to `placeholder`.  Defaults to
+   *   `"replace"` if `placeholder` is given, otherwise defaults to `"end"`.
+   * @property {boolean=} previewColors
+   *   If specified as `true` the language name will be shown in the toolbar.
+   * @property {number=} resizeRate
+   *   An integer indicating how often (in milliseconds) the IFRAME should be
+   *   resized if necessary.  If not set will default to `100`.
+   * @property {boolean=} showLanguage
+   *   If specified as `true` the language name will be shown in the toolbar.
+   * @property {number=} tabSize
+   *   How many spaces should be used to replace tab characters.
    * @property {string=} theme
    *   If specified this will be the Prism.js theme that will be used.  Any
    *   theme that is supported in version 1 should work.
@@ -50,29 +79,6 @@ const {prismize, prismizeAll} = (function(document, undefined) {
    *   `"https://cdn.jsdelivr.net/npm/prismjs@[[version]]/[[path]]"`.  The
    *   `version` template variable should be able to be represented as
    *   `"1.X.X"`.
-   * @property {HTMLElement=} placeholder
-   *   Element around where the IFRAME should be placed.  Defaults to
-   *   `document.body`.
-   * @property {("before"|"after"|"replace"|"end"|"start")=} placement
-   *   Where to place the IFRAME in relation to `placeholder`.  Defaults to
-   *   `"replace"` if `placeholder` is given, otherwise defaults to `"end"`.
-   * @property {number=} maxHeight
-   *   Maximum height of the content.
-   * @property {number=} tabSize
-   *   How many spaces should be used to replace tab characters.
-   * @property {string=} id
-   *   The ID to assign to the IFRAME.
-   * @property {string=} className
-   *   Class name to assign to the IFRAME.
-   * @property {number=} resizeRate
-   *   An integer indicating how often (in milliseconds) the IFRAME should be
-   *   resized if necessary.  If not set will default to `100`.
-   * @property {((iframe: HTMLElement, options: PrismizeOptions) => void)=} onLoad
-   *   If specified this function will be called after the IFRAME is added to
-   *   the DOM.
-   * @property {((iframe: HTMLElement, options: PrismizeOptions) => void)=} onResize
-   *   If specified this function will be called whenever the contents of the
-   *   IFRAME have been resized.
    */
 
   /**
@@ -100,7 +106,7 @@ const {prismize, prismizeAll} = (function(document, undefined) {
     if ('string' !== typeof code) {
       // Get all options that are not already defined in the options object from
       // the data attributes.
-      'copyable keepMargins matchBraces maxHeight numberLines placement previewColors resizeRate showLanguage tabSize templatePath theme'
+      'copyable downloadName downloadable removeMargins matchBraces maxHeight numberLines placement previewColors resizeRate showLanguage tabSize templatePath theme'
         .replace(/\w+/g, function(camelCaseProp) {
           const dataProp = 'data-' + camelCaseProp.replace(/[A-Z]/g, '-$&').toLowerCase();
           if (!options.hasOwnProperty(camelCaseProp)) {
@@ -117,9 +123,12 @@ const {prismize, prismizeAll} = (function(document, undefined) {
       language ??= code.getAttribute('data-prismize') ?? code.getAttribute('data-language');
       options.placeholder = code;
       options.id ??= code.id;
+
+      // Handle numbers.
+      options.resizeRate = +options.resizeRate;
       
       // Handle the booleans.
-      options.keepMargins = !RGX_HTML_FALSE.test(options.keepMargins ?? '0');
+      options.removeMargins = !RGX_HTML_FALSE.test(options.removeMargins ?? '0');
       options.matchBraces = !RGX_HTML_FALSE.test(options.matchBraces ?? '0');
       options.previewColors = !RGX_HTML_FALSE.test(options.previewColors ?? '0');
 
@@ -138,6 +147,13 @@ const {prismize, prismizeAll} = (function(document, undefined) {
       options.copyable ??= '0';
       if (RGX_IS_HTML_BOOL.test(options.copyable)) {
         options.copyable = !RGX_HTML_FALSE.test(options.copyable);
+      }
+
+      // If downloadble is defined as a non-boolean string keep it as is otherwise
+      // convert it to a real boolean.
+      options.downloadable ??= '0';
+      if (RGX_IS_HTML_BOOL.test(options.downloadable)) {
+        options.downloadable = !RGX_HTML_FALSE.test(options.downloadable);
       }
 
       // If showLanguage is defined as a non-boolean string keep it as is otherwise
@@ -187,51 +203,88 @@ const {prismize, prismizeAll} = (function(document, undefined) {
     const preClassNames = [`language-${language}`];
     if (options.numberLines) preClassNames.push('line-numbers');
     if (options.matchBraces) preClassNames.push('match-braces');
-    let preAttributes = {
+    const preAttributes = Object.entries({
       "class": preClassNames.join(' '),
       "data-prismjs-copy": options.copyable === true ? "Copy" : options.copyable,
-      "data-start": firstLineNumber,
+      "data-start": 'number' === typeof options.numberLines ? options.numberLines : 1,
       "data-language": options.showLanguage !== true ? options.showLanguage || undefined : undefined,
-    };
-    preAttributes = Object.entries(preAttributes).reduce(
+      "data-label": options.downloadable ? "download" : undefined,
+    }).reduce(
       (htmls, [name, value]) => htmls + (value != undefined ? ` ${name}="${htmlify(value)}"` : ''),
       ''
     );
 
-    // Get the HTML code that will be pushed into the IFRAME.
-    const divCode = document.createElement('div');
-    divCode.innerText = unindentMin(code, {tabSize: +options.tabSize || undefined});
-    let escapedCode = divCode.innerHTML.replace(/<br.*?>/g, '\n');
-    let firstLineNumber = 'number' === typeof options.numberLines ? options.numberLines : 1;
-    let copyButtonTextHTML = options.copyable === true ? "Copy" : htmlify(options.copyable);
+    // Get the code that will be prismized as raw HTML.
+    const escapedCode = Object.assign(document.createElement('div'), {
+      innerText: unindentMin(code, {tabSize: +options.tabSize || undefined})
+    }).innerHTML.replace(/<br.*?>/g, '\n');
+
+    // Get the stylesheets.
     const stylesheets = cssPaths.map(url => `<link rel="stylesheet" href="${url}" crossorigin="anonymous" />`);
-    stylesheets.splice(1, 0, `<style>body${options.keepMargins ? '' : ',pre[class*=language-]'}{margin:0}</style>`);
+    const cssRules = 'body{margin:0;overflow:hidden;}'
+      + (options.removeMargins ? 'pre[class*=language-]{margin:0;}' : '')
+      + (options.maxHeight != undefined ? 'pre[class*=language-]>code{overflow-y:auto;}' : '');
+    stylesheets.splice(1, 0, `<style>${cssRules}</style>`);
+
+    // Get the HTML code that will be pushed into the IFRAME.
     let html = '<base target="_parent" />'
       + stylesheets.join('')
       + `<pre${preAttributes}><code>${escapedCode}</code></pre>`
+      + (options.downloadable ? `<template id="download"><button onclick="downloadCode()">${options.downloadable === true ? "Download" : options.downloadable}</button></template>` : '')
       + '<script>('
       + (function() {
           // NOTE:  Reference window.document instead of just document to avoid
           //        errors when transpiling.
-          let { body } = window.document;
-          let height = body.clientHeight;
+          const undefined = void 0;
+          const { document } = window;
+          const { body } = document;
+          let {scrollHeight} = body;
+          let maxHeight;
+
+          /** @type {PrismizeOptions} */
+          const options = ":OPTIONS:";
+
+          // Make a global function called downloadCode which will be called by
+          // the download button.
+          window.downloadCode = () => {
+            const pre = body.querySelector('pre');
+            const a = document.createElement('a');
+            a.href = 'data:text/plain;charset=utf-8,' + encodeURIComponent(pre.textContent);
+            a.download = options.downloadName
+              || pre.className.replace(/(?:^(?:[^]*\s)?)language-(\S+)[^]*$/, '$1 (' + (new Date).toJSON() + ').txt');
+            a.style.cssText = 'position: absolute; top: -99px;';
+            body.appendChild(a);
+            a.click();
+            body.removeChild(a);
+          };
+          
           setInterval(() => {
-            let pre = body.querySelector('pre');
-            // NOTE:  Take the ceiling to avoid scrollbars showing because of
-            //        rounding down.
-            let newHeight = Math.ceil(
-              parseFloat(getComputedStyle(pre).marginTop)
-              + pre.offsetHeight
-              + parseFloat(getComputedStyle(pre).marginBottom)
-            );
-            if (height !== newHeight) {
-              height = newHeight;
-              window.parent.postMessage({height: newHeight, id: ":IDENTIFIER:"}, '*');
+            // If maxHeight is defined see if the <code> tag's max height needs
+            // to be updated.
+            const pre = body.querySelector('pre');
+            const code = pre.querySelector('code');
+            const verticalMargin = body.scrollHeight - pre.offsetHeight;
+            if (options.maxHeight != undefined) {
+              const newMaxHeight = options.maxHeight - verticalMargin;
+              if (maxHeight !== newMaxHeight) {
+                maxHeight = newMaxHeight;
+                code.style.maxHeight = newMaxHeight + 'px';
+              }
             }
-          }, ":RATE:");
+
+            // If the scroll height has changed send a message to the parent
+            // window to resize this IFRAME.
+            if (body.scrollHeight !== scrollHeight) {
+              scrollHeight = body.scrollHeight;
+              window.parent.postMessage(
+                { height: scrollHeight, id: ":IDENTIFIER:" },
+                '*'
+              );
+            }
+          }, options.resizeRate || 100);
         }).toString()
           .replace('":IDENTIFIER:"', JSON.stringify(IDENTIFIER))
-          .replace('":RATE:"', options.autoResize != false ? options.resizeRate || 100 : Infinity)
+          .replace('":OPTIONS:"', JSON.stringify(options))
       + ")()</script>"
       + jsPaths.map(url => `<script src="${url}" crossorigin="anonymous"></script>`).join('');
 
@@ -365,7 +418,7 @@ const {prismize, prismizeAll} = (function(document, undefined) {
    * @returns {{cssPaths: string[], jsPaths: string[]}}
    */
   function getPrismFilePaths(options) {
-    let needsToolbar;
+    let needsToolbar = options.downloadable;
     let themePath = options.theme;
     if (/^[\w\-]*$/.test(themePath)) {
       themePath = themePath !== 'default' ? '-' + options.theme : '';
@@ -424,6 +477,8 @@ const {prismize, prismizeAll} = (function(document, undefined) {
     return {cssPaths, jsPaths};
   }
 
+  // Try to run prismizeAll() and then return prismize and prismizeAll() even if
+  // primizeAll() fails.
   try {
     prismizeAll();
   }
