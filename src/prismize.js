@@ -24,77 +24,15 @@ const {prismize, prismizeAll} = (function(document, undefined) {
   DEFAULTS.templatePath = 'https://cdn.jsdelivr.net/npm/prismjs@[[version]]/[[path]]';
 
   /**
-   * Takes a template string where each template variable is surrounded by two
-   * sets of square brackets and returns the string with the values filled in.
-   * @param {string} template 
-   * @param {{[key: string]: any}} pairs 
-   * @returns {string}
-   */
-  function fill(template, pairs) {
-    const strRgx = '\\[\\[('
-      + Object.keys(pairs).reduce(
-          (arr, key) => arr.concat([`${key}`]),
-          []
-        ).join('|')
-      + ')\\]\\]';
-    return template.replace(new RegExp(strRgx, 'g'), (_, key) => pairs[key]);
-  }
-
-  /**
-   * Finds the minimum indentation of all of the lines that have non-space
-   * characters and removes the indentation accordingly for all indented lines.
-   * @param {string} text
-   *   The string containing the lines of text that should be unindented.
-   * @param {{trim: boolean, tabSize: number}=} opt_options
-   *   Optional, defaults to `{trim: true, tabSize: 4}`.  The `trim` property
-   *   indicates if leading lines should be removed along with trailing
-   *   whitespaces.  The `tabSize` property indicates how many spaces will be
-   *   used to replace all tab characters.
-   * @returns {string}
-   *   A new version of `text` with all of the minimally indented lines having
-   *   no leading spacing and all other indented lines following suit.  If
-   *   `opt_options.trim` is `true` all leading lines and trailing spaces will
-   *   not exist.  All tab characters will be replaced with
-   *   `opt_options.tabSize` amount of space characters.
-   */
-  function unindentMin(text, opt_options) {
-    opt_options = Object(opt_options);
-    const tabSize = opt_options.tabSize ?? 4;
-    const trim = opt_options.trim ?? true;
-    text = text.replace(/\t/g, ' '.repeat(tabSize));
-    if (!/(^|[\r\n])\S/.test(text)) {
-      const rgx = /(^|[\r\n])((?:(?!\r|\n)\s)+)(?=(\S)?)/g;
-      let min = Infinity;
-      for (let match; match = rgx.exec(text);) {
-        if (match[3]) {
-          min = Math.min(min, match[2].length);
-        }
-      }
-      text = text.replace(
-        rgx,
-        (_, start, spaces) => start + spaces.slice(min)
-      );
-    }
-    return trim ? text.replace(/^(\s*[\r\n]+)+|\s+$/g, '') : text;
-  }
-
-  /**
-   * Takes a normal string and converts it so that any characters that need to
-   * be encoded as HTML entities when interpreted as HTML will be returned.
-   * @param {string} input 
-   * @returns {string}
-   */
-  function htmlify(input) {
-    return Object.assign(document.createElement('div'), {innerText: input}).innerHTML;
-  }
-
-  /**
    * @typedef {Object} PrismizeOptions
    * @property {(boolean|number)=} numberLines
    *   If specified as `true` or a number the lines will be numbered.  If
    *   specified as a number that will be used as the first line number to show.
    * @property {boolean=} matchBraces
    *   If specified as `true` the match braces plugin will be enabled.
+   * @property {boolean=} keepMargins
+   *   If specified as `true` the margins for the main <pre> tag in the IFRAME
+   *   will be kept.  Default is `false`.
    * @property {boolean=} showLanguage
    *   If specified as `true` the language name will be shown in the toolbar.
    * @property {boolean=} previewColors
@@ -162,7 +100,7 @@ const {prismize, prismizeAll} = (function(document, undefined) {
     if ('string' !== typeof code) {
       // Get all options that are not already defined in the options object from
       // the data attributes.
-      'matchBraces showLanguage previewColors placement resizeRate maxHeight tabSize theme numberLines copyable templatePath'
+      'copyable keepMargins matchBraces maxHeight numberLines placement previewColors resizeRate showLanguage tabSize templatePath theme'
         .replace(/\w+/g, function(camelCaseProp) {
           const dataProp = 'data-' + camelCaseProp.replace(/[A-Z]/g, '-$&').toLowerCase();
           if (!options.hasOwnProperty(camelCaseProp)) {
@@ -176,14 +114,13 @@ const {prismize, prismizeAll} = (function(document, undefined) {
         });
       
       // Handle special options.
-      language ??= code.getAttribute('data-prismize');
+      language ??= code.getAttribute('data-prismize') ?? code.getAttribute('data-language');
       options.placeholder = code;
-      options.placement ??= code.getAttribute('data-placement');
       options.id ??= code.id;
       
       // Handle the booleans.
+      options.keepMargins = !RGX_HTML_FALSE.test(options.keepMargins ?? '0');
       options.matchBraces = !RGX_HTML_FALSE.test(options.matchBraces ?? '0');
-      options.showLanguage = !RGX_HTML_FALSE.test(options.showLanguage ?? '0');
       options.previewColors = !RGX_HTML_FALSE.test(options.previewColors ?? '0');
 
       // Default the theme if not given.
@@ -202,12 +139,18 @@ const {prismize, prismizeAll} = (function(document, undefined) {
       if (RGX_IS_HTML_BOOL.test(options.copyable)) {
         options.copyable = !RGX_HTML_FALSE.test(options.copyable);
       }
+
+      // If showLanguage is defined as a non-boolean string keep it as is otherwise
+      // convert it to a real boolean.
+      options.showLanguage ??= '0';
+      if (RGX_IS_HTML_BOOL.test(options.showLanguage)) {
+        options.showLanguage = !RGX_HTML_FALSE.test(options.showLanguage);
+      }
         
       // Make sure to mark the original element as prismized.
       code.className = code.className?.replace(/(?:^|\s)prismize(?:\s|$)/g, ' prismized ');
 
-      // If className is to be pulled from the element make sure to turn
-      // "prismize" into "prismized".
+      // If className is to be pulled from the element go ahead and do so.
       options.className ??= code.className;
 
       // Set the starting height.
@@ -234,60 +177,26 @@ const {prismize, prismizeAll} = (function(document, undefined) {
     if (options.className) iframe.className = options.className;
     if (options.id) iframe.id = options.id;
 
-    let needsToolbar;
-    const themeSuffix = options.theme !== 'default' ? '-' + options.theme : '';
-    
-    function fillPath(path) {
-      return fill(options.templatePath, {version: '1.X.X', path});
-    }
-
-    const cssFiles = [fillPath(`themes/prism${themeSuffix}.min.css`)];
-    const jsFiles = [
-      fillPath('prism.min.js'),
-      fillPath('plugins/autoloader/prism-autoloader.min.js')
-    ];
-
-    let base;
-
-    if (options.numberLines) {
-      base = 'plugins/line-numbers/prism-line-numbers.min.';
-      cssFiles.push(fillPath(base + 'css'));
-      jsFiles.push(fillPath(base + 'js'));
-    }
-
-    if (options.matchBraces) {
-      base = 'plugins/match-braces/prism-match-braces.min.';
-      cssFiles.push(fillPath(base + 'css'));
-      jsFiles.push(fillPath(base + 'js'));
-    }
-
-    if (options.previewColors) {
-      base = 'plugins/inline-color/prism-inline-color.min.';
-      cssFiles.push(fillPath(base + 'css'));
-      jsFiles.push(
-        fillPath(base + 'js'),
-        fillPath('components/prism-css-extras.min.js')
-      );
-    }
-    
-    if (options.copyable) {
-      jsFiles.push(fillPath('plugins/copy-to-clipboard/prism-copy-to-clipboard.min.js'));
-      needsToolbar = true;
-    }
-    
-    if (options.showLanguage) {
-      jsFiles.push(fillPath('plugins/show-language/prism-show-language.min.js'));
-      needsToolbar = true;
-    }
-    
-    if (needsToolbar) {
-      base = 'plugins/toolbar/prism-toolbar.min.';
-      cssFiles.splice(1, 0, fillPath(base + 'css'));
-      jsFiles.splice(1, 0, fillPath(base + 'js'));
-    }
+    // Get all of the Prism.js CSS files and the JS files.
+    const {cssPaths, jsPaths} = getPrismFilePaths(options);
 
     // Generate an ID that is unique to this prismized content.
     const IDENTIFIER = ('_' + Math.random() + Math.random()).replace(/\./g, '_');
+
+    // Gets the <pre> attributes as a string.
+    const preClassNames = [`language-${language}`];
+    if (options.numberLines) preClassNames.push('line-numbers');
+    if (options.matchBraces) preClassNames.push('match-braces');
+    let preAttributes = {
+      "class": preClassNames.join(' '),
+      "data-prismjs-copy": options.copyable === true ? "Copy" : options.copyable,
+      "data-start": firstLineNumber,
+      "data-language": options.showLanguage !== true ? options.showLanguage || undefined : undefined,
+    };
+    preAttributes = Object.entries(preAttributes).reduce(
+      (htmls, [name, value]) => htmls + (value != undefined ? ` ${name}="${htmlify(value)}"` : ''),
+      ''
+    );
 
     // Get the HTML code that will be pushed into the IFRAME.
     const divCode = document.createElement('div');
@@ -295,13 +204,11 @@ const {prismize, prismizeAll} = (function(document, undefined) {
     let escapedCode = divCode.innerHTML.replace(/<br.*?>/g, '\n');
     let firstLineNumber = 'number' === typeof options.numberLines ? options.numberLines : 1;
     let copyButtonTextHTML = options.copyable === true ? "Copy" : htmlify(options.copyable);
-    let preClassNames = [`language-${language}`];
-    if (options.numberLines) preClassNames.push('line-numbers');
-    if (options.matchBraces) preClassNames.push('match-braces');
+    const stylesheets = cssPaths.map(url => `<link rel="stylesheet" href="${url}" crossorigin="anonymous" />`);
+    stylesheets.splice(1, 0, `<style>body${options.keepMargins ? '' : ',pre[class*=language-]'}{margin:0}</style>`);
     let html = '<base target="_parent" />'
-      + cssFiles.map(url => `<link rel="stylesheet" href="${url}" crossorigin="anonymous" />`).join('')
-      + '<style>body,body>*:first-child{margin:0}</style>'
-      + `<pre class="${preClassNames.join(' ')}" data-prismjs-copy="${copyButtonTextHTML}" data-start="${firstLineNumber}"><code>${escapedCode}</code></pre>`
+      + stylesheets.join('')
+      + `<pre${preAttributes}><code>${escapedCode}</code></pre>`
       + '<script>('
       + (function() {
           // NOTE:  Reference window.document instead of just document to avoid
@@ -310,9 +217,13 @@ const {prismize, prismizeAll} = (function(document, undefined) {
           let height = body.clientHeight;
           setInterval(() => {
             let pre = body.querySelector('pre');
-            let newHeight = parseInt(getComputedStyle(pre).marginTop)
+            // NOTE:  Take the ceiling to avoid scrollbars showing because of
+            //        rounding down.
+            let newHeight = Math.ceil(
+              parseFloat(getComputedStyle(pre).marginTop)
               + pre.offsetHeight
-              + parseInt(getComputedStyle(pre).marginBottom);
+              + parseFloat(getComputedStyle(pre).marginBottom)
+            );
             if (height !== newHeight) {
               height = newHeight;
               window.parent.postMessage({height: newHeight, id: ":IDENTIFIER:"}, '*');
@@ -322,7 +233,7 @@ const {prismize, prismizeAll} = (function(document, undefined) {
           .replace('":IDENTIFIER:"', JSON.stringify(IDENTIFIER))
           .replace('":RATE:"', options.autoResize != false ? options.resizeRate || 100 : Infinity)
       + ")()</script>"
-      + jsFiles.map(url => `<script src="${url}" crossorigin="anonymous"></script>`).join('');
+      + jsPaths.map(url => `<script src="${url}" crossorigin="anonymous"></script>`).join('');
 
     // Show the desired page in the IFRAME.
     iframe.src = 'data:text/html;charset=UTF-8,' + encodeURIComponent(html);
@@ -381,6 +292,136 @@ const {prismize, prismizeAll} = (function(document, undefined) {
     else {
       document.addEventListener("DOMContentLoaded", onReady);
     }
+  }
+
+  /**
+   * Takes a template string where each template variable is surrounded by two
+   * sets of square brackets and returns the string with the values filled in.
+   * @param {string} template 
+   * @param {{[key: string]: any}} pairs 
+   * @returns {string}
+   */
+  function fill(template, pairs) {
+    const strRgx = '\\[\\[('
+      + Object.keys(pairs).reduce(
+          (arr, key) => arr.concat([`${key}`]),
+          []
+        ).join('|')
+      + ')\\]\\]';
+    return template.replace(new RegExp(strRgx, 'g'), (_, key) => pairs[key]);
+  }
+
+  /**
+   * Finds the minimum indentation of all of the lines that have non-space
+   * characters and removes the indentation accordingly for all indented lines.
+   * @param {string} text
+   *   The string containing the lines of text that should be unindented.
+   * @param {{trim: boolean, tabSize: number}=} opt_options
+   *   Optional, defaults to `{trim: true, tabSize: 4}`.  The `trim` property
+   *   indicates if leading lines should be removed along with trailing
+   *   whitespaces.  The `tabSize` property indicates how many spaces will be
+   *   used to replace all tab characters.
+   * @returns {string}
+   *   A new version of `text` with all of the minimally indented lines having
+   *   no leading spacing and all other indented lines following suit.  If
+   *   `opt_options.trim` is `true` all leading lines and trailing spaces will
+   *   not exist.  All tab characters will be replaced with
+   *   `opt_options.tabSize` amount of space characters.
+   */
+  function unindentMin(text, opt_options) {
+    opt_options = Object(opt_options);
+    const tabSize = opt_options.tabSize ?? 4;
+    const trim = opt_options.trim ?? true;
+    text = text.replace(/\t/g, ' '.repeat(tabSize));
+    if (!/(^|[\r\n])\S/.test(text)) {
+      const rgx = /(^|[\r\n])((?:(?!\r|\n)\s)+)(?=(\S)?)/g;
+      let min = Infinity;
+      for (let match; match = rgx.exec(text);) {
+        if (match[3]) {
+          min = Math.min(min, match[2].length);
+        }
+      }
+      text = text.replace(
+        rgx,
+        (_, start, spaces) => start + spaces.slice(min)
+      );
+    }
+    return trim ? text.replace(/^(\s*[\r\n]+)+|\s+$/g, '') : text;
+  }
+
+  /**
+   * Takes a normal string and converts it so that any characters that need to
+   * be encoded as HTML entities when interpreted as HTML will be returned.
+   * @param {string} input 
+   * @returns {string}
+   */
+  function htmlify(input) {
+    return Object.assign(document.createElement('div'), {innerText: input}).innerHTML;
+  }
+
+  /**
+   * Uses the options to get the correct Prism.js file paths.
+   * @param {PrismizeOptions} options
+   * @returns {{cssPaths: string[], jsPaths: string[]}}
+   */
+  function getPrismFilePaths(options) {
+    let needsToolbar;
+    let themePath = options.theme;
+    if (/^[\w\-]*$/.test(themePath)) {
+      themePath = themePath !== 'default' ? '-' + options.theme : '';
+      themePath = fillPath(`themes/prism${themePath}.min.css`);
+    }
+    
+    function fillPath(path) {
+      return fill(options.templatePath, {version: '1.X.X', path});
+    }
+
+    const cssPaths = [themePath];
+    const jsPaths = [
+      fillPath('prism.min.js'),
+      fillPath('plugins/autoloader/prism-autoloader.min.js')
+    ];
+
+    let base;
+
+    if (options.numberLines) {
+      base = 'plugins/line-numbers/prism-line-numbers.min.';
+      cssPaths.push(fillPath(base + 'css'));
+      jsPaths.push(fillPath(base + 'js'));
+    }
+
+    if (options.matchBraces) {
+      base = 'plugins/match-braces/prism-match-braces.min.';
+      cssPaths.push(fillPath(base + 'css'));
+      jsPaths.push(fillPath(base + 'js'));
+    }
+
+    if (options.previewColors) {
+      base = 'plugins/inline-color/prism-inline-color.min.';
+      cssPaths.push(fillPath(base + 'css'));
+      jsPaths.push(
+        fillPath(base + 'js'),
+        fillPath('components/prism-css-extras.min.js')
+      );
+    }
+    
+    if (options.copyable) {
+      jsPaths.push(fillPath('plugins/copy-to-clipboard/prism-copy-to-clipboard.min.js'));
+      needsToolbar = true;
+    }
+    
+    if (options.showLanguage) {
+      jsPaths.push(fillPath('plugins/show-language/prism-show-language.min.js'));
+      needsToolbar = true;
+    }
+    
+    if (needsToolbar) {
+      base = 'plugins/toolbar/prism-toolbar.min.';
+      cssPaths.splice(1, 0, fillPath(base + 'css'));
+      jsPaths.splice(1, 0, fillPath(base + 'js'));
+    }
+    
+    return {cssPaths, jsPaths};
   }
 
   try {
