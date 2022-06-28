@@ -15,10 +15,12 @@ const {prismize, prismizeAll} = (function(document, undefined) {
       .replace(/\+/g, ' ')
       .matchAll(/[?&]([^=&#]+)(?:=([^&#]*))?/g)
   ).reduce(
-    (DEFAULTS, [_, k, v]) => Object.assign(
-      DEFAULTS,
-      { [decodeURIComponent(k)]: v ? decodeURIComponent(v) : '' }
-    ),
+    (DEFAULTS, match) => {
+      const k = match[1];
+      const v = match[2];
+      DEFAULTS[decodeURIComponent(k)] = v ? decodeURIComponent(v) : '';
+      return DEFAULTS;
+    },
     {}
   );
   DEFAULTS.templatePath = 'https://cdn.jsdelivr.net/npm/prismjs@[[version]]/[[path]]';
@@ -235,7 +237,7 @@ const {prismize, prismizeAll} = (function(document, undefined) {
       ["class", preClassNames.join(' ')],
       ["data-start", 'number' === typeof options.numberLines ? options.numberLines : 1],
     ].reduce(
-      (htmls, [name, value]) => htmls + (value != undefined ? ` ${name}="${htmlify(value)}"` : ''),
+      (htmls, pair) => htmls + (pair[1] != undefined ? ` ${pair[0]}="${htmlify(pair[1])}"` : ''),
       ''
     );
 
@@ -381,7 +383,7 @@ const {prismize, prismizeAll} = (function(document, undefined) {
 
     // Whenever a message comes through check to see if it is from the prismize
     // IFRAME and if so resize the correct IFRAME accordingly.
-    window.addEventListener('message', async e => {
+    window.addEventListener('message', e => {
       if (e.source === iframe.contentWindow) {
         let data = Object(e.data);
         if (data.id === IDENTIFIER) {
@@ -394,7 +396,9 @@ const {prismize, prismizeAll} = (function(document, undefined) {
             options.onResize && options.onResize(iframe, opt_options);
           }
           else if (data.action) {
-            let success = true;
+            function postBack(success) {
+              e.source.postMessage({ action: data.action, success: !!success }, '*')
+            }
             try {
               if (data.action === 'download') {
                 Object.assign(
@@ -406,22 +410,26 @@ const {prismize, prismizeAll} = (function(document, undefined) {
                 ).click();
               }
               else if (data.action === 'copy') {
-                await navigator.clipboard.writeText(data.code);
+                const innerPostBack = postBack;
+                navigator.clipboard.writeText(data.code)
+                  .then(() => innerPostBack(true))
+                  .catch(() => innerPostBack());
+                  postBack = undefined;
               }
               else {
                 if (options.onAction) {
-                  await options.onAction(data.action, data.code, iframe, options);
+                  options.onAction(data.action, data.code, iframe, options);
                 }
                 globalHandlers.forEach(
-                  async globalHandler => await globalHandler(data.action, data.code, iframe, options)
+                  globalHandler => globalHandler(data.action, data.code, iframe, options)
                 );
               }
+              postBack && postBack(true);
             }
             catch (err) {
-              success = false;
+              postBack();
               console.error && console.error(err);
             }
-            e.source.postMessage({ action: data.action, success }, '*');
           }
         }
       }
