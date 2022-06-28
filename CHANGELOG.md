@@ -1,5 +1,8 @@
 # Changelog
 
+- **v1.1.1** (28 June 2022)
+  - Fixed initial resizing.
+
 - **v1.1.0** (27 June 2022)
   - Updated `data-show-language` attribute and the `showLanguage` property (in prismize's URL or the `opt_options` object) to accept a non-boolean string which when specified will be used to indicate the label of the language for the code block.
   - Added `data-downloadable` attribute and `downloadable` property (in prismize's URL or the `opt_options` object) to add a download button.
