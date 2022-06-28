@@ -248,7 +248,7 @@ const {prismize, prismizeAll} = (function(document, undefined) {
     const stylesheets = cssPaths.map(url => `<link rel="stylesheet" href="${url}" crossorigin="anonymous" />`);
     const cssRules = 'body{margin:0;overflow:hidden;}'
       + '#wrapper{overflow:hidden;}'
-      + `#infoBar{font-size:0.85em;color:#333;background-color:#EEE;border-radius:0.3em;overflow:hidden;box-shadow:0 0 1px 1px #000,0 ${options.endWithInfoBar ? '-' : ''}0.4em 0.4em -0.2em;margin:${options.endWithInfoBar ? '0.4em 1px 1px' : '1px 1px 0.4em'};background-image:linear-gradient(to bottom,rgba(255,255,255,0.2),rgba(255,255,255,0.05) 50%,rgba(0,0,0,0.05) 50%,rgba(0,0,0,0.2));font-family:Tahoma;text-shadow:0.1em 0.1em 0.1em #fff;display:flex;}`
+      + `#infoBar{font-size:0.85em;color:#333;background-color:#EEE;border-radius:0.3em;overflow:hidden;box-shadow:0 0 1px 1px #000,0 ${options.endWithInfoBar ? '-' : ''}0.4em 0.4em -0.2em;margin:${options.endWithInfoBar ? '0.4em 2px 2px' : '2px 2px 0.4em'};background-image:linear-gradient(to bottom,rgba(255,255,255,0.2),rgba(255,255,255,0.05) 50%,rgba(0,0,0,0.05) 50%,rgba(0,0,0,0.2));font-family:Tahoma;text-shadow:0.1em 0.1em 0.1em #fff;display:flex;}`
       + '#infoBar .content{flex:1;text-overflow:ellipsis;white-space:nowrap;overflow:hidden;}'
       + '#infoBar>a,#infoBar .content{padding:0.4em 0.8em;}'
       + '#infoBar>a{text-decoration:none;box-shadow:0 0 1px #000;background-color:rgba(0,0,0,0.5);color:#FFF;text-shadow:0 0 1px #000;cursor:pointer;transition:0.25s ease all;}'
