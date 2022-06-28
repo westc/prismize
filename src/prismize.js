@@ -238,7 +238,7 @@ const {prismize, prismizeAll} = (function(document, undefined) {
           const undefined = void 0;
           const { document } = window;
           const { body } = document;
-          let {scrollHeight} = body;
+          let scrollHeight;
           let maxHeight;
 
           /** @type {PrismizeOptions} */
