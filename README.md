@@ -2,6 +2,10 @@
 
 Easily use [Prism.js](https://prismjs.com/) on any web page.
 
+## Changelog
+
+All of the changes from version to version can be found [here](CHANGELOG.md).
+
 ## Usage
 
 You must include prismize.js in your page and then a `<pre>` tag that contains an attribute named "data-prismize" and a value matching the language that you want to use for the syntax highlighting (eg. apex, css, javascript, etc.).  Here is a simple example:
@@ -46,9 +50,12 @@ Options for specific prismized content can be set by including the correct `data
 
 Attribute | Type | Description
 --|--|--
-`data-copyable` | Boolean \| String | If this is a boolean value it indicates whether or not to show a copy to clipboard button in a toolbar in the top-right corner of the code block.  If this is a string the code block will appear with a copy to clipboard button in the toolbar in the top-right with this string as the button's label.
-`data-downloadable` | Boolean \| String | If this is a boolean value it indicates whether or not to show a download button in a toolbar in the top-right corner of the code block.  If this is a string the code block will appear with a download button in the toolbar in the top-right with this string as the button's label.
+`data-action-*` | String | Specify an attribute starting with `data-action-` to add an additional button to the toolbar.  These buttons will be ordered by the name of the attributes, not the labels.  All custom action buttons will appear before the `Copy` and `Download` buttons.
+`data-copyable` | Boolean \| String | If this is a boolean value it indicates whether or not to show a copy to clipboard button in a info bar in the top-right corner of the code block.  If this is a string the code block will appear with a copy to clipboard button in the info bar in the top-right with this string as the button's label.
+`data-downloadable` | Boolean \| String | If this is a boolean value it indicates whether or not to show a download button in a info bar in the top-right corner of the code block.  If this is a string the code block will appear with a download button in the info bar in the top-right with this string as the button's label.
 `data-downloadable` | String | The file name for the file that will be downloaded.
+`data-info-text` | String | Used to show specific text after the language tag but before the buttons in the info bar.
+`data-info-html` | String | Used to evaluate HTML that will appear after the language tag but before the buttons in the info bar.
 `data-language` | String | Alternative to `data-language`.  Used to indicate the language to be used to highlight the syntax.
 `data-match-braces` | Boolean | Indicates whether to use the [match-braces plugin](https://prismjs.com/plugins/match-braces/).
 `data-max-height` | Integer | Indicates the maximum height of the containing element (IFRAME) of the syntax highlighted code.
@@ -65,9 +72,10 @@ Attribute | Type | Description
 
 ## Invoking Via JavaScript
 
-Two function are added to the global scope:
+Three functions are added to the global scope:
 
-- `prismize()`
-- `prismizeAll()`
+- `prismize()` - Can be used on a single block of code or a string which contains code.
+- `prismize.listenToActions()` - Called to listen to actions for all prismized code.
+- `prismizeAll()` - Called to execute `prismize()` on all elements on the page that either have a `data-prismize` attribute or a `prismize` class name.
 
-Both of these functions are documented with JSDoc syntax which will help you understand how to use them.  In a nutshell `prismize()` can be used on a single block of code or string which contains code, while `prismizeAll()` will look for all elements on the page that either have a `data-prismize` attribute or a `prismize` class name.
+These functions are documented with JSDoc syntax which will help you understand how to use them.
