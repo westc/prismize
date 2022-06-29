@@ -1,6 +1,6 @@
 {
   "name": "prismize",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Display code in HTML using Prism.JS to do syntax highlighting.",
   "main": "prismize.min.js",
   "scripts": {
