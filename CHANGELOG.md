@@ -1,5 +1,23 @@
 # Changelog
 
+- **v1.2.1** (29 June 2022)
+  - Fixed bug that prevents `data-language` from working if `data-prismize` was already specified without a value.
+  - Made the info bar unselectable.
+
+- **v1.2.0** (28 June 2022)
+  - Added custom actions (buttons).
+  - Added an examples directory to house example code.
+  - Made the info bar (AKA toolbar) sit above the code block and thus removed the toolbar, download button and copy to clipboard button plugins offered by Prism.js.
+  - Updated `data-show-language` attribute and `showLanguage` (in prismize's URL or the `opt_options` object) property to optionally accept a string.
+  - Added `data-action-*` attributes that can be used to define arbitrary action buttons that will appear before the copy and delete buttons in the info bar.
+  - Added `actions` property to `opt_options` for `prismize()`.
+  - Added `data-end-with-info-bar` attribute and `endWithInfoBar` (in prismize's URL or the `opt_options` object) property.
+  - Added `data-info-text` attribute and `infoText` (in prismize's URL or the `opt_options` object) property.
+  - Added `data-info-html` attribute and `infoHTML` (in prismize's URL or the `opt_options` object) property.
+  - Added `onActions` property to `opt_options` for `prismize()`.
+  - Added `prismize.listToActions()`.
+  - Fixed the sizing issue.
+
 - **v1.1.1** (28 June 2022)
   - Fixed initial resizing.
 

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="../prismize.js?theme=okaidia&downloadable&copyable&showLanguage&endWithInfoBar"></script>
+    <script>
+      prismize.listenToActions(function(action, code, iframe, options) {
+        if (action === 'execute') {
+          eval(code);
+        }
+      });
+    </script>
+  </head>
+  <body>
+    <pre data-prismize data-language="html" data-info-text="Example HTML File" data-end-with-info-bar="no">
+      &lt;div style="font-size: 1.2em;"&gt;
+        Hello world!!!
+      &lt;/div&gt;
+    </pre>
+    <pre data-prismize="java" data-info-text="Example Java File">
+      console.log(3);
+    </pre>
+    <pre data-prismize="javascript" data-info-text="Example JavaScript File" data-action-execute="Execute">
+      console.log(3);
+      document.title = new Date;
+    </pre>
+    <pre data-prismize="python" data-info-text="Example Python File">
+      console.log(3)
+    </pre>
+  </body>
+</html>
