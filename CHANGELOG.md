@@ -1,5 +1,9 @@
 # Changelog
 
+- **v1.2.1** (29 June 2022)
+  - Fixed bug that prevents `data-language` from working if `data-prismize` was already specified without a value.
+  - Made the info bar unselectable.
+
 - **v1.2.0** (28 June 2022)
   - Added custom actions (buttons).
   - Added an examples directory to house example code.
